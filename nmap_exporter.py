@@ -97,10 +97,10 @@ class NmapMetrics(object):
             )
 
             if VERBOSE:
-                for l in str(p.stdout).split('\\n'):
-                    logging.debug(f"out> {l}")
-                for l in str(p.stderr).split('\\n'):
-                    logging.debug(f"err> {l}")
+                for out_item in str(p.stdout).split('\\n'):
+                    logging.debug(f"out> {out_item}")
+                for err_item in str(p.stderr).split('\\n'):
+                    logging.debug(f"err> {err_item}")
 
             done_scanning_time = timeit.default_timer()
             scan_duration = done_scanning_time - start_time
@@ -126,8 +126,8 @@ class NmapMetrics(object):
 
         if VERBOSE:
             with open(filepath) as f:
-                for l in f.readlines():
-                    logging.debug(f"xml> {l.rstrip()}")
+                for line in f.readlines():
+                    logging.debug(f"xml> {line.rstrip()}")
 
         root = ElementTree.parse(filepath).getroot()
         for n in root.findall("host"):
