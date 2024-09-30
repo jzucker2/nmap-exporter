@@ -157,7 +157,7 @@ class NmapMetrics(object):
             ports = n.find("ports")
             if ports:
                 for port in ports:
-                    #logging.debug(f"found port {port}")
+                    logging.debug(f"found port {port}")
                     try:
                         proto = port.attrib["protocol"]
                         portid = port.attrib["portid"]
@@ -173,7 +173,7 @@ class NmapMetrics(object):
                         elif status == 'filtered':
                             stat = -2
                         elif status == 'unfiltered':
-                            stat = -1 
+                            stat = -1
                         logging.debug(f" PORT proto: {proto} "
                                       f"portid: {portid} service: {service} "
                                       f"status: {status} / {stat}")
@@ -191,13 +191,13 @@ class NmapMetrics(object):
                         # ssl expiry
                         exp = port.find(
                             './/table[@key="validity"]/elem[@key="notAfter"]')
-                        #logging.debug(f" TLS {exp}")
+                        logging.debug(f"TLS {exp}")
                         if hasattr(exp, 'text'):
                             dt = datetime.datetime.strptime(
                                 exp.text,
                                 "%Y-%m-%dT%H:%M:%S")
                             epoch = (dt - UNIX_EPOCH).total_seconds()
-                            #logging.debug(f" TLS {epoch}")
+                            logging.debug(f"TLS {epoch}")
                             epoch_metric_labels = [
                                 hostname,
                                 address,
