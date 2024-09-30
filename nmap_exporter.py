@@ -169,6 +169,7 @@ class NmapMetrics(object):
 
 
 def main():
+    logging.info("Started server")
     nmap_metrics = NmapMetrics( polling_interval=SLEEP )
     REGISTRY.register( nmap_metrics )
     start_http_server(PORT)
