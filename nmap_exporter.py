@@ -86,9 +86,9 @@ class NmapMetrics(object):
 
         with tempfile.TemporaryDirectory() as tmpdir:
             filename = os.path.join(tmpdir, 'nmap.xml')
-            cmd = ["nmap", "-oX", filename, "-d3" ]
-            cmd += SCAN_METHOD.split() 
-            cmd += IP_RANGE.split() 
+            cmd = ["nmap", "-oX", filename, "-d3"]
+            cmd += SCAN_METHOD.split()
+            cmd += IP_RANGE.split()
             logging.debug(f"Executing {' '.join(cmd)}")
             p = subprocess.run(
                 cmd,
@@ -98,7 +98,7 @@ class NmapMetrics(object):
 
             if VERBOSE:
                 for l in str(p.stdout).split('\\n'):
-                    logging.debug( f"out> {l}" )
+                    logging.debug(f"out> {l}")
                 for l in str(p.stderr).split('\\n'):
                     logging.debug(f"err> {l}")
 
@@ -113,13 +113,12 @@ class NmapMetrics(object):
 
             end_time = timeit.default_timer()
             processing_duration = end_time - done_scanning_time
-    
+
             total_duration = end_time - start_time
 
             logging.info(f"cycle completed in {total_duration:.2f}s "
                          f"({scan_duration:.2f}s + "
                          f"{processing_duration:.2f}s)")
-
 
     def parse(self, filepath):
 
@@ -140,16 +139,18 @@ class NmapMetrics(object):
                     hostname = hostnames_el.attrib["name"]
                 else:
                     hostname = address
-            except:
+            except Exception as e:
                 hostname = address
+                logging.error(f"Looking for host, got e: {e}")
             logging.debug(f"NODE {address} ({hostname})")
 
             # parse ping
             ping_time = None
             try:
                 ping_time = int(n.find("times").attrib["srtt"]) / 1000
-            except:
+            except Exception as e:
                 ping_time = 0
+                logging.error(f"Looking for ping time, got e: {e}")
             logging.debug(f"PING {ping_time}")
             self.ping.add_metric([hostname, address, GROUP_NAME], ping_time)
 
@@ -164,7 +165,7 @@ class NmapMetrics(object):
                         service = 'unknown'
                         try:
                             service = port.find("service").attrib["name"]
-                        except:
+                        except Exception:
                             pass
                         stat = 0
                         if status == 'open':
