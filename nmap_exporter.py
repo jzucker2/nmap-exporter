@@ -21,11 +21,12 @@ IP_RANGE = os.environ.get("NMAP_COLLECTOR_IP_RANGE", '192.168.0.0/24')
 GROUP_NAME = os.environ.get("NMAP_COLLECTOR_GROUP_NAME", "")
 SCAN_METHOD = os.environ.get("NMAP_COLLECTOR_SCAN_METHOD", "-F")
 
-VERBOSE = bool(os.environ.get("NMAP_COLLECTOR_VERBOSE",False))
+VERBOSE = bool(os.environ.get("NMAP_COLLECTOR_VERBOSE", False))
 
 logging.basicConfig(level=logging.DEBUG if VERBOSE else logging.INFO)
 
-UNIX_EPOCH = datetime.datetime( 1970, 1, 1)
+UNIX_EPOCH = datetime.datetime(1970, 1, 1)
+
 
 class NmapMetrics(object):
 
@@ -70,7 +71,7 @@ class NmapMetrics(object):
         self.reset_metrics()
         while True:
             self.fetch()
-            time.sleep( self.polling_interval )
+            time.sleep(self.polling_interval)
 
     def collect(self):
         yield self.ping
@@ -83,12 +84,12 @@ class NmapMetrics(object):
         start_time = timeit.default_timer()
         logging.debug(f"scanning group {GROUP_NAME}: {IP_RANGE}")
 
-        with tempfile.TemporaryDirectory( ) as tmpdir:
+        with tempfile.TemporaryDirectory() as tmpdir:
             filename = os.path.join(tmpdir, 'nmap.xml')
             cmd = ["nmap", "-oX", filename, "-d3" ]
             cmd += SCAN_METHOD.split() 
             cmd += IP_RANGE.split() 
-            logging.debug( f"Executing {' '.join(cmd)}" ) 
+            logging.debug(f"Executing {' '.join(cmd)}")
             p = subprocess.run(
                 cmd,
                 stdout=subprocess.PIPE,
@@ -99,7 +100,7 @@ class NmapMetrics(object):
                 for l in str(p.stdout).split('\\n'):
                     logging.debug( f"out> {l}" )
                 for l in str(p.stderr).split('\\n'):
-                    logging.debug( f"err> {l}" )
+                    logging.debug(f"err> {l}")
 
             done_scanning_time = timeit.default_timer()
             scan_duration = done_scanning_time - start_time
@@ -108,7 +109,7 @@ class NmapMetrics(object):
             self.reset_metrics()
 
             # construct metrics
-            self.parse( filename )
+            self.parse(filename)
 
             end_time = timeit.default_timer()
             processing_duration = end_time - done_scanning_time
@@ -120,12 +121,12 @@ class NmapMetrics(object):
                          f"{processing_duration:.2f}s)")
 
 
-    def parse( self, filepath ):
+    def parse(self, filepath):
 
-        assert os.path.isfile( filepath )
+        assert os.path.isfile(filepath)
 
         if VERBOSE:
-            with open( filepath ) as f:
+            with open(filepath) as f:
                 for l in f.readlines():
                     logging.debug(f"xml> {l.rstrip()}")
 
@@ -149,7 +150,7 @@ class NmapMetrics(object):
                 ping_time = int(n.find("times").attrib["srtt"]) / 1000
             except:
                 ping_time = 0
-            logging.debug(f" PING {ping_time}")
+            logging.debug(f"PING {ping_time}")
             self.ping.add_metric([hostname, address, GROUP_NAME], ping_time)
 
             ports = n.find("ports")
@@ -190,11 +191,11 @@ class NmapMetrics(object):
                         exp = port.find(
                             './/table[@key="validity"]/elem[@key="notAfter"]')
                         #logging.debug(f" TLS {exp}")
-                        if hasattr( exp, 'text' ):
+                        if hasattr(exp, 'text'):
                             dt = datetime.datetime.strptime(
                                 exp.text,
                                 "%Y-%m-%dT%H:%M:%S")
-                            epoch = ( dt - UNIX_EPOCH ).total_seconds()
+                            epoch = (dt - UNIX_EPOCH).total_seconds()
                             #logging.debug(f" TLS {epoch}")
                             epoch_metric_labels = [
                                 hostname,
@@ -212,8 +213,8 @@ class NmapMetrics(object):
 
 def main():
     logging.info("Started server")
-    nmap_metrics = NmapMetrics( polling_interval=SLEEP )
-    REGISTRY.register( nmap_metrics )
+    nmap_metrics = NmapMetrics(polling_interval=SLEEP)
+    REGISTRY.register(nmap_metrics)
     start_http_server(PORT)
     nmap_metrics.run_metrics_loop()
 
