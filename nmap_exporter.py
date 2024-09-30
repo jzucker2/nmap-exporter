@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 from prometheus_client import start_http_server, Summary, REGISTRY
-from prometheus_client.core import GaugeMetricFamily, REGISTRY
+from prometheus_client.core import GaugeMetricFamily
 import time
 import timeit
 import subprocess
@@ -12,11 +12,12 @@ from xml.etree import ElementTree
 import logging
 
 
-REQUEST_TIME = Summary('request_processing_seconds', 'Time spent processing request')
-
-SLEEP = int(os.environ.get("NMAP_COLLECTOR_INTERVAL",30))
-PORT = int(os.environ.get("NMAP_COLLECTOR_PORT",8000))
-IP_RANGE = os.environ.get("NMAP_COLLECTOR_IP_RANGE",'192.168.0.0/24')
+REQUEST_TIME = Summary(
+    'request_processing_seconds',
+    'Time spent processing request')
+SLEEP = int(os.environ.get("NMAP_COLLECTOR_INTERVAL", 30))
+PORT = int(os.environ.get("NMAP_COLLECTOR_PORT", 8000))
+IP_RANGE = os.environ.get("NMAP_COLLECTOR_IP_RANGE", '192.168.0.0/24')
 GROUP_NAME = os.environ.get("NMAP_COLLECTOR_GROUP_NAME", "")
 SCAN_METHOD = os.environ.get("NMAP_COLLECTOR_SCAN_METHOD", "-F")
 
@@ -41,12 +42,28 @@ class NmapMetrics(object):
         self.state = GaugeMetricFamily(
             'nmap_port_state',
             'Discovered port state of network devices (devices are labels)',
-            labels=["hostname", "ip_address", "group", "proto", "portid", "service", "status"]
+            labels=[
+                "hostname",
+                "ip_address",
+                "group",
+                "proto",
+                "portid",
+                "service",
+                "status",
+            ]
         )
         self.tls = GaugeMetricFamily(
             'nmap_tls_expiry',
             'Epoch time of tls enabled service',
-            labels=["hostname", "ip_address", "group", "proto", "portid", "service", "epochTime" ]
+            labels=[
+                "hostname",
+                "ip_address",
+                "group",
+                "proto",
+                "portid",
+                "service",
+                "epochTime",
+            ]
         )
 
     def run_metrics_loop(self):
@@ -67,7 +84,7 @@ class NmapMetrics(object):
         logging.debug(f"scanning group {GROUP_NAME}: {IP_RANGE}")
 
         with tempfile.TemporaryDirectory( ) as tmpdir:
-            filename = os.path.join( tmpdir, 'nmap.xml' )
+            filename = os.path.join(tmpdir, 'nmap.xml')
             cmd = ["nmap", "-oX", filename, "-d3" ]
             cmd += SCAN_METHOD.split() 
             cmd += IP_RANGE.split() 
@@ -98,7 +115,9 @@ class NmapMetrics(object):
     
             total_duration = end_time - start_time
 
-            logging.info(f"cycle completed in {total_duration:.2f}s ({scan_duration:.2f}s + {processing_duration:.2f}s)")
+            logging.info(f"cycle completed in {total_duration:.2f}s "
+                         f"({scan_duration:.2f}s + "
+                         f"{processing_duration:.2f}s)")
 
 
     def parse( self, filepath ):
@@ -153,17 +172,40 @@ class NmapMetrics(object):
                             stat = -2
                         elif status == 'unfiltered':
                             stat = -1 
-                        logging.debug(f" PORT proto: {proto} portid: {portid} service: {service} status: {status} / {stat}")
-                        self.state.add_metric( [hostname, address, GROUP_NAME, proto, portid, service, status], stat )
+                        logging.debug(f" PORT proto: {proto} "
+                                      f"portid: {portid} service: {service} "
+                                      f"status: {status} / {stat}")
+                        stat_metric_labels = [
+                            hostname,
+                            address,
+                            GROUP_NAME,
+                            proto,
+                            portid,
+                            service,
+                            status,
+                        ]
+                        self.state.add_metric(stat_metric_labels, stat)
 
                         # ssl expiry
-                        exp = port.find('.//table[@key="validity"]/elem[@key="notAfter"]')
+                        exp = port.find(
+                            './/table[@key="validity"]/elem[@key="notAfter"]')
                         #logging.debug(f" TLS {exp}")
                         if hasattr( exp, 'text' ):
-                            dt = datetime.datetime.strptime( exp.text, "%Y-%m-%dT%H:%M:%S")
+                            dt = datetime.datetime.strptime(
+                                exp.text,
+                                "%Y-%m-%dT%H:%M:%S")
                             epoch = ( dt - UNIX_EPOCH ).total_seconds()
                             #logging.debug(f" TLS {epoch}")
-                            self.tls.add_metric( [hostname, address, GROUP_NAME, proto, portid, service, status], epoch )
+                            epoch_metric_labels = [
+                                hostname,
+                                address,
+                                GROUP_NAME,
+                                proto,
+                                portid,
+                                service,
+                                status,
+                            ]
+                            self.tls.add_metric(epoch_metric_labels, epoch)
                     except Exception as e:
                         logging.debug(f"could not parse: {e}")
 
@@ -174,6 +216,7 @@ def main():
     REGISTRY.register( nmap_metrics )
     start_http_server(PORT)
     nmap_metrics.run_metrics_loop()
+
 
 if __name__ == '__main__':
     main()
